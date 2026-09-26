@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockSense - Modular Inventory Management System (IMS)</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+</head>
+<body>
+
+<div id="app">
+  <!-- Left Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="brand-section">
+      <div class="brand-logo">SS</div>
+      <div class="brand-name">
+        StockSense
+        <span class="sub">Modular IMS</span>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <div class="nav-label">Core Overview</div>
+      <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+        <span class="icon">📊</span>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" data-view="products" onclick="switchView('products')">
+        <span class="icon">📦</span>
+        <span>Products</span>
+      </div>
+
+      <div class="nav-label">Operations</div>
+      <div class="nav-item" data-view="receipts" onclick="switchView('receipts')">
+        <span class="icon">📥</span>
+        <span>Receipts (Incoming)</span>
+      </div>
+      <div class="nav-item" data-view="deliveries" onclick="switchView('deliveries')">
+        <span class="icon">📤</span>
+        <span>Delivery Orders</span>
+      </div>
+      <div class="nav-item" data-view="transfers" onclick="switchView('transfers')">
+        <span class="icon">🔄</span>
+        <span>Internal Transfers</span>
+      </div>
+      <div class="nav-item" data-view="adjustments" onclick="switchView('adjustments')">
+        <span class="icon">⚖️</span>
+        <span>Stock Adjustments</span>
+      </div>
+
+      <div class="nav-label">Auditing & Config</div>
+      <div class="nav-item" data-view="ledger" onclick="switchView('ledger')">
+        <span class="icon">📜</span>
+        <span>Move History</span>
+      </div>
+      <div class="nav-item" data-view="settings" onclick="switchView('settings')">
+        <span class="icon">⚙️</span>
+        <span>Warehouses</span>
+      </div>
+      <div class="nav-item" data-view="profile" onclick="switchView('profile')">
+        <span class="icon">👤</span>
+        <span>My Profile</span>
+      </div>
+    </nav>
+
+    <!-- User Profile Footer in Sidebar -->
+    <div class="user-profile-box">
+      <div class="user-info-mini">
+        <div class="user-avatar" id="sidebar-user-avatar">SC</div>
+        <div class="user-text">
+          <div class="user-name" id="sidebar-user-name">Sarah Connor</div>
+          <div class="user-role-badge" id="sidebar-user-role">Inventory Manager</div>
+        </div>
+      </div>
+      <button class="btn-icon-logout" title="Logout / Switch User" onclick="openAuthModal('login')">
+        🚪
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="page-title" id="current-page-title">Operations Dashboard</h1>
+        <div class="demo-benchmark-pill" title="Problem statement flow loaded: 100 received -> moved to production -> 20 delivered -> 3 damaged adjusted = 77 kg remaining">
+          <span class="dot"></span>
+          <span>Benchmark Flow: 77 kg Active in Production</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Perspective Switcher -->
+        <div class="role-switcher" title="Toggle perspective to test role permissions">
+          <button class="role-btn active" id="role-manager-btn" onclick="setRole('inventory_manager')">Manager</button>
+          <button class="role-btn" id="role-staff-btn" onclick="setRole('warehouse_staff')">Staff</button>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" onclick="resetDemoData()" title="Reset to clean benchmark state">
+          🔄 Reset Demo
+        </button>
+
+        <button class="btn btn-primary btn-sm" onclick="openNewOperationModal('receipt')">
+          + New Receipt
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openNewOperationModal('delivery')">
+          + New Delivery
+        </button>
+      </div>
+    </header>
+
+    <!-- View Panels Container -->
+    <div class="content-body">
+      
+      <!-- ============================================== -->
+      <!-- VIEW: DASHBOARD -->
+      <!-- ============================================== -->
+      <section id="view-dashboard" class="view-section active">
+        <!-- Problem Statement Workflow Guide Banner -->
+        <div class="flow-demo-card">
+          <div style="font-weight: 700; font-size: 0.9rem; color: #818cf8;">
+            Odoo IMS Flow Demonstration
+          </div>
+          <div class="flow-steps">
+            <div class="flow-step-item">
+              <span class="flow-step-num">1</span>
+              <span>Receive 100 kg Steel (+100)</span>
+            </div>
+            <span class="flow-step-arrow">→</span>
+            <div class="flow-step-item">
+              <span class="flow-step-num">2</span>
+              <span>Internal Move to Prod Rack</span>
+            </div>
+            <span class="flow-step-arrow">→</span>
+            <div class="flow-step-item">
+              <span class="flow-step-num">3</span>
+              <span>Deliver 20 Steel (-20)</span>
+            </div>
+            <span class="flow-step-arrow">→</span>
+            <div class="flow-step-item">
+              <span class="flow-step-num">4</span>
+              <span>Adjust 3 kg Damaged (-3)</span>
+            </div>
+          </div>
+          <div style="font-size: 0.82rem; font-weight:700; color: #34d399;">
+            Ledger Balanced (77 kg in Prod)
+          </div>
+        </div>
+
+        <!-- 5 Dashboard KPIs Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-total" onclick="switchView('products')">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Products in Stock</span>
+              <span class="kpi-icon">📦</span>
+            </div>
+            <div class="kpi-value" id="kpi-total-val">0</div>
+            <div class="kpi-subtext" id="kpi-total-sub">0 total units recorded</div>
+          </div>
+
+          <div class="kpi-card kpi-low" onclick="switchView('products')">
+            <div class="kpi-header">
+              <span class="kpi-title">Low / Out of Stock</span>
+              <span class="kpi-icon">⚠️</span>
+            </div>
+            <div class="kpi-value" id="kpi-low-val" style="color: #f87171;">0</div>
+            <div class="kpi-subtext" id="kpi-low-sub">Requires attention</div>
+          </div>
+
+          <div class="kpi-card kpi-receipts" onclick="switchView('receipts')">
+            <div class="kpi-header">
+              <span class="kpi-title">Pending Receipts</span>
+              <span class="kpi-icon">📥</span>
+            </div>
+            <div class="kpi-value" id="kpi-receipts-val">0</div>
+            <div class="kpi-subtext">Incoming vendor stock</div>
+          </div>
+
+          <div class="kpi-card kpi-deliveries" onclick="switchView('deliveries')">
+            <div class="kpi-header">
+              <span class="kpi-title">Pending Deliveries</span>
+              <span class="kpi-icon">📤</span>
+            </div>
+            <div class="kpi-value" id="kpi-deliveries-val">0</div>
+            <div class="kpi-subtext">Outgoing customer orders</div>
+          </div>
+
+          <div class="kpi-card kpi-transfers" onclick="switchView('transfers')">
+            <div class="kpi-header">
+              <span class="kpi-title">Internal Transfers</span>
+              <span class="kpi-icon">🔄</span>
+            </div>
+            <div class="kpi-value" id="kpi-transfers-val">0</div>
+            <div class="kpi-subtext">Scheduled movements</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Filters Bar (Page 1 requirement) -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">Doc Type:</span>
+            <select class="filter-select" id="filter-type">
+              <option value="all">All Documents</option>
+              <option value="receipt">Receipts</option>
+              <option value="delivery">Deliveries</option>
+              <option value="internal">Internal Transfers</option>
+              <option value="adjustment">Adjustments</option>
+            </select>
+
+            <span class="filter-label">Status:</span>
+            <select class="filter-select" id="filter-status">
+              <option value="all">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="waiting">Waiting</option>
+              <option value="ready">Ready</option>
+              <option value="done">Done</option>
+              <option value="canceled">Canceled</option>
+            </select>
+
+            <span class="filter-label">Warehouse:</span>
+            <select class="filter-select" id="filter-warehouse">
+              <option value="all">All Warehouses</option>
+            </select>
+
+            <span class="filter-label">Category:</span>
+            <select class="filter-select" id="filter-category">
+              <option value="all">All Categories</option>
+            </select>
+          </div>
+
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="filter-search" placeholder="Search reference, partner...">
+          </div>
+        </div>
+
+        <!-- Operations Snapshot Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>📋</span> Inventory Operations Snapshot
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-secondary btn-sm" onclick="loadDashboardOperations()">Refresh</button>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Partner / Context</th>
+                  <th>Movement (From → To)</th>
+                  <th>Items Summary</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-ops-tbody">
+                <!-- Dynamically rendered -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Lower Grid: Stock Distribution & Low Stock Alerts -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>🏷️</span> Stock by Category</div>
+            </div>
+            <div class="card-body" id="category-distribution-list" style="padding: 16px 20px;">
+              <!-- Categories stats -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>🚨</span> Low Stock Alerts</div>
+            </div>
+            <div class="card-body" id="low-stock-alert-list" style="padding: 16px 20px;">
+              <!-- Low stock items -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: PRODUCTS MANAGEMENT -->
+      <!-- ============================================== -->
+      <section id="view-products" class="view-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>📦</span> Products Catalog & Availability</div>
+            <div class="card-actions">
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-product')">+ Create Product</button>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>SKU / Code</th>
+                  <th>Category</th>
+                  <th>UoM</th>
+                  <th>Total Stock</th>
+                  <th>Unit Price</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: RECEIPTS (INCOMING GOODS) -->
+      <!-- ============================================== -->
+      <section id="view-receipts" class="view-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>📥</span> Receipts (Incoming Stock from Vendors)</div>
+            <div class="card-actions">
+              <button class="btn btn-primary btn-sm" onclick="openNewOperationModal('receipt')">+ New Receipt</button>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Status</th>
+                  <th>Supplier / Vendor</th>
+                  <th>From Location</th>
+                  <th>Destination Location</th>
+                  <th>Scheduled Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="receipts-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: DELIVERY ORDERS (OUTGOING GOODS) -->
+      <!-- ============================================== -->
+      <section id="view-deliveries" class="view-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>📤</span> Delivery Orders (Outgoing Stock to Customers)</div>
+            <div class="card-actions">
+              <button class="btn btn-primary btn-sm" onclick="openNewOperationModal('delivery')">+ New Delivery Order</button>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Status</th>
+                  <th>Customer Name</th>
+                  <th>Source Location</th>
+                  <th>Destination Location</th>
+                  <th>Scheduled Date</th>
+                  <th>Workflow Actions</th>
+                </tr>
+              </thead>
+              <tbody id="deliveries-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: INTERNAL TRANSFERS -->
+      <!-- ============================================== -->
+      <section id="view-transfers" class="view-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>🔄</span> Internal Warehouse Transfers</div>
+            <div class="card-actions">
+              <button class="btn btn-primary btn-sm" onclick="openNewOperationModal('internal')">+ New Transfer</button>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Status</th>
+                  <th>Purpose / Description</th>
+                  <th>From Location</th>
+                  <th>To Location</th>
+                  <th>Scheduled Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="transfers-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: STOCK ADJUSTMENTS -->
+      <!-- ============================================== -->
+      <section id="view-adjustments" class="view-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>⚖️</span> Stock Adjustments & Physical Count Audits</div>
+            <div class="card-actions">
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-adjustment')">+ Perform Adjustment</button>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Reason / Context</th>
+                  <th>Location</th>
+                  <th>Audit Notes</th>
+                  <th>Validated At</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="adjustments-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: MOVE HISTORY / STOCK LEDGER -->
+      <!-- ============================================== -->
+      <section id="view-ledger" class="view-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>📜</span> Stock Move History & Immutable Ledger</div>
+            <div class="card-actions">
+              <select class="filter-select" id="ledger-type-filter">
+                <option value="all">All Operations</option>
+                <option value="receipt">Receipts</option>
+                <option value="delivery">Deliveries</option>
+                <option value="internal">Transfers</option>
+                <option value="adjustment">Adjustments</option>
+              </select>
+              <input type="text" class="search-input" id="ledger-search" placeholder="Search reference, SKU..." style="width: 180px;">
+              <a href="/api/ledger/export" class="btn btn-secondary btn-sm" download>📥 Export CSV</a>
+            </div>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Reference</th>
+                  <th>Type</th>
+                  <th>Product (SKU)</th>
+                  <th>From Location</th>
+                  <th>To Location</th>
+                  <th>Quantity</th>
+                  <th>Logged By</th>
+                </tr>
+              </thead>
+              <tbody id="ledger-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: WAREHOUSES & LOCATIONS -->
+      <!-- ============================================== -->
+      <section id="view-settings" class="view-section">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>🏢</span> Warehouses</div>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Address</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>WH1</code></td>
+                    <td><strong>Main Central Warehouse</strong></td>
+                    <td><small>Sector 14, Industrial Park</small></td>
+                  </tr>
+                  <tr>
+                    <td><code>WH2</code></td>
+                    <td><strong>Production & Assembly Plant</strong></td>
+                    <td><small>Zone B, North Logistics Park</small></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>📍</span> Internal & Virtual Locations</div>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Location Name</th>
+                    <th>Type</th>
+                    <th>Barcode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Main Store (WH1/Stock)</td><td><span class="badge badge-internal">Internal</span></td><td><code>WH1-STORE-01</code></td></tr>
+                  <tr><td>Rack A (Raw Racks)</td><td><span class="badge badge-internal">Internal</span></td><td><code>WH1-RACK-A</code></td></tr>
+                  <tr><td>Rack B (Storage)</td><td><span class="badge badge-internal">Internal</span></td><td><code>WH1-RACK-B</code></td></tr>
+                  <tr><td>Production Rack (WH2/Prod)</td><td><span class="badge badge-internal">Internal</span></td><td><code>WH2-PROD-RACK</code></td></tr>
+                  <tr><td>Assembly Floor (WH2/Floor)</td><td><span class="badge badge-internal">Internal</span></td><td><code>WH2-ASSM-01</code></td></tr>
+                  <tr><td>Vendors (Inbound Partner)</td><td><span class="badge badge-draft">Virtual</span></td><td><code>VIRT-VEND</code></td></tr>
+                  <tr><td>Customers (Outbound Partner)</td><td><span class="badge badge-draft">Virtual</span></td><td><code>VIRT-CUST</code></td></tr>
+                  <tr><td>Inventory Loss & Scrap</td><td><span class="badge badge-canceled">Virtual Scrap</span></td><td><code>VIRT-SCRAP</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- VIEW: PROFILE -->
+      <!-- ============================================== -->
+      <section id="view-profile" class="view-section">
+        <div class="card" style="max-width: 500px; margin: 0 auto;">
+          <div class="card-header">
+            <div class="card-title"><span>👤</span> User Profile & Security</div>
+          </div>
+          <div class="card-body" style="padding: 24px;">
+            <div style="display:flex; align-items:center; gap: 16px; margin-bottom: 24px;">
+              <div class="user-avatar" id="prof-avatar" style="width: 54px; height: 54px; font-size: 1.4rem;">SC</div>
+              <div>
+                <h3 id="prof-name">Sarah Connor</h3>
+                <div style="color: #38bdf8; font-size: 0.85rem;" id="prof-role">Inventory Manager</div>
+                <div style="color: var(--text-dim); font-size: 0.8rem;" id="prof-email">manager@stocksense.com</div>
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+              <h4 style="font-size: 0.9rem; margin-bottom: 12px;">Security & Password</h4>
+              <button class="btn btn-secondary btn-sm" onclick="openAuthModal('reset')">Reset Password with OTP</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: ADD PRODUCT -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-add-product">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Create New Product</div>
+      <button class="modal-close" onclick="closeModal('modal-add-product')">&times;</button>
+    </div>
+    <form onsubmit="handleCreateProduct(event)">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Product Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Steel Rods" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SKU / Code *</label>
+            <input type="text" name="sku" class="form-control" placeholder="e.g. STL-900" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category_id" class="form-control">
+              <option value="1">Raw Materials</option>
+              <option value="2">Finished Goods</option>
+              <option value="3">Furniture</option>
+              <option value="4">Hardware & Fasteners</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit of Measure (UoM) *</label>
+            <select name="uom" class="form-control" required>
+              <option value="kg">kg (Kilograms)</option>
+              <option value="Units">Units (Pieces)</option>
+              <option value="Meters">Meters</option>
+              <option value="Boxes">Boxes</option>
+              <option value="Liters">Liters</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Reorder Min Qty (Alert Threshold)</label>
+            <input type="number" name="min_qty" class="form-control" value="10" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit Price ($)</label>
+            <input type="number" name="unit_price" class="form-control" value="0.0" step="0.01" min="0">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Initial Stock (Optional)</label>
+            <input type="number" name="initial_stock" class="form-control" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Initial Storage Location</label>
+            <select name="initial_location_id" class="form-control">
+              <option value="4">Main Store (WH1/Stock)</option>
+              <option value="5">Rack A (Raw Racks)</option>
+              <option value="6">Rack B (Storage)</option>
+              <option value="7">Production Rack (WH2/Prod)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-product')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: STOCK PER LOCATION -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-product-locations">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Stock Availability per Location</div>
+      <button class="modal-close" onclick="closeModal('modal-product-locations')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <h4 id="modal-loc-prod-name" style="margin-bottom: 14px; color: #818cf8;">Product</h4>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Warehouse</th>
+            <th>Location</th>
+            <th>Barcode</th>
+            <th>On Hand Quantity</th>
+          </tr>
+        </thead>
+        <tbody id="modal-loc-tbody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-product-locations')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: CREATE OPERATION (Receipt, Delivery, Transfer) -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-create-operation">
+  <div class="modal-box" style="max-width: 680px;">
+    <div class="modal-header">
+      <div class="modal-title" id="op-modal-title">New Operation</div>
+      <button class="modal-close" onclick="closeModal('modal-create-operation')">&times;</button>
+    </div>
+    <form onsubmit="handleCreateOperation(event)">
+      <input type="hidden" id="op-modal-type" value="receipt">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" id="op-partner-label">Partner / Description *</label>
+          <input type="text" id="op-partner-name" class="form-control" placeholder="e.g. Alpha Metals Ltd" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Source Location *</label>
+            <select id="op-src-loc" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destination Location *</label>
+            <select id="op-dest-loc" class="form-control" required></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <label class="form-label" style="margin-bottom:0;">Products & Quantities *</label>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addOperationItemRow()">+ Add Line</button>
+          </div>
+          <div id="op-items-rows">
+            <!-- Dynamic rows -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Operation Notes</label>
+          <input type="text" id="op-notes" class="form-control" placeholder="e.g. Expedited batch for project deadline">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-operation')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Operation (Draft)</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: STOCK ADJUSTMENT -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-adjustment">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Inventory Stock Adjustment</div>
+      <button class="modal-close" onclick="closeModal('modal-adjustment')">&times;</button>
+    </div>
+    <form onsubmit="handleApplyAdjustment(event)">
+      <div class="modal-body">
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+          Reconcile recorded stock against actual physical count. The system automatically computes discrepancies and logs moves to the inventory loss ledger.
+        </p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Select Product *</label>
+            <select name="product_id" id="adj-product-select" class="form-control" required onchange="handleAdjustmentSelectionChange()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Select Location *</label>
+            <select name="location_id" id="adj-location-select" class="form-control" required onchange="handleAdjustmentSelectionChange()"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Recorded Stock (System)</label>
+            <input type="number" id="adj-recorded-qty" class="form-control" readonly value="0" style="opacity: 0.7;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Physical Counted Quantity *</label>
+            <input type="number" name="counted_qty" id="adj-counted-qty" class="form-control" placeholder="e.g. 77" step="any" required oninput="calculateAdjustmentDelta()">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <span id="adj-delta-badge" style="font-size: 0.85rem; font-weight:700;">Delta: 0</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Adjustment Reason *</label>
+          <select name="reason" class="form-control" required>
+            <option value="Damaged Goods / Scrap">Damaged Goods / Scrap (e.g. 3 kg steel damaged)</option>
+            <option value="Physical Count Discrepancy">Physical Count Discrepancy</option>
+            <option value="Theft or Loss">Theft or Missing</option>
+            <option value="Surplus Found">Surplus Found in Warehouse</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Audit Notes</label>
+          <input type="text" name="notes" class="form-control" placeholder="Inspection remarks...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-adjustment')">Cancel</button>
+        <button type="submit" class="btn btn-warning">Apply & Log Adjustment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: AUTH & OTP PASSWORD RESET -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-auth">
+  <div class="modal-box" style="max-width: 440px;">
+    <!-- Login Mode -->
+    <div id="auth-mode-login">
+      <div class="modal-header">
+        <div class="modal-title">Sign In to StockSense</div>
+        <button class="modal-close" onclick="closeModal('modal-auth')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="login-email" class="form-control" value="manager@stocksense.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="login-password" class="form-control" value="admin123">
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-top:8px;">
+          <a href="#" onclick="openAuthModal('reset')" style="color:#818cf8; text-decoration:none;">Forgot Password (OTP)?</a>
+          <a href="#" onclick="openAuthModal('signup')" style="color:#818cf8; text-decoration:none;">Create Account</a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('modal-auth'); showToast('Signed in as Manager', 'success')">Sign In</button>
+      </div>
+    </div>
+
+    <!-- OTP Reset Mode -->
+    <div id="auth-mode-reset" style="display:none;">
+      <div class="modal-header">
+        <div class="modal-title">Reset Password via OTP</div>
+        <button class="modal-close" onclick="closeModal('modal-auth')">&times;</button>
+      </div>
+      <form onsubmit="handleResetPassword(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Registered Email</label>
+            <div style="display:flex; gap:8px;">
+              <input type="email" id="reset-email" class="form-control" value="manager@stocksense.com" required>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="handleRequestOtp()">Send OTP</button>
+            </div>
+          </div>
+
+          <div id="reset-step-otp">
+            <div class="form-group">
+              <label class="form-label">6-Digit OTP Code</label>
+              <input type="text" id="reset-otp" class="form-control" placeholder="123456" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" id="reset-new-password" class="form-control" placeholder="Enter new password" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="openAuthModal('login')">Back to Login</button>
+          <button type="submit" class="btn btn-primary">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
